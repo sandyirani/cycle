@@ -78,7 +78,13 @@ end
 
 function normEnv(j)
   nHalf = Int64(ceil(n/2))
+  nHalfm1 = mod(nHalf-2,n)+1
+  jm1 = mod(j-2,n)+1
+  jp1 = mod(j,n)+1
+  jp2 = mod(j+1,n)+1
   mid = mod(j+nHalf,n)+1
+  Eleft = calcEnv(nHalf,jm1,true)
+  Eright = calcEnv(jp2,nHalfm1,false)
 end
 
 function calcEnv(l,r,toRight)
@@ -89,11 +95,18 @@ function calcEnv(l,r,toRight)
   for k = 1:num
     Nc = N[curr]
     Ncp = Nc'
-    @tensor begin
-      Enew[c,d] := E[a,b]*Ncp[a,p,c]*Nc[b,p,d]
+    if (toRight)
+      @tensor begin
+        Enew[c,d] := E[a,b]*Ncp[a,p,c]*Nc[b,p,d]
+      end
+      curr = mod(curr,n)+1
+    else
+      @tensor begin
+        Enew[a,b] := E[c,d]*Ncp[a,p,c]*Nc[b,p,d]
+      end
+      curr = mod(curr-2,n)+1
     end
     E = Enew
-    curr = mod(curr,n)+1
   end
   return(E)
 end
