@@ -69,6 +69,7 @@ function mainLoop()
       taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
       #println("\n iteration = $iter")
       for j = 1:N
+        normEnv(j)
         applyGateAndTrim(j,taugate)
       end
     end
@@ -77,14 +78,44 @@ function mainLoop()
 end
 
 function normEnv(j)
+
   nHalf = Int64(ceil(n/2))
-  nHalfm1 = mod(nHalf-2,n)+1
   jm1 = mod(j-2,n)+1
   jp1 = mod(j,n)+1
   jp2 = mod(j+1,n)+1
   mid = mod(j+nHalf,n)+1
-  Eleft = calcEnv(nHalf,jm1,true)
-  Eright = calcEnv(jp2,nHalfm1,false)
+  midp1 = mod(mid,n)+1
+  Eleft = calcEnv(midp1,jm1,true)
+  Eright = calcEnv(jp2,mid,false)
+  Eleft = 0.5*(Eleft+Eleft')
+  Eright = 0.5*(Eright+Eright')
+
+  F = eigfact(Eleft)
+  d = F[:values]
+  U = F[:vectors]
+  dSqrt = sqrt.(d)
+  s = size(A[jm1])
+  Ajm1 = reshape(A[jm1],s[1]*s[2],s[3])
+  Ajm1 = Ajm1*U*diagm(inv.(dSqrt))
+  A[jm1] = reshape(Ajm1,s[1],s[2],length(d))
+  s = size(A[j])
+  Aj = reshape(A[j],s[1],s[2]*s[3])
+  Aj = diagm(dSqrt)*U'*Aj
+  A[j] = reshape(Aj,length(d),s[2],s[3])
+
+  F = eigfact(Eright)
+  d = F[:values]
+  U = F[:vectors]
+  dSqrt = sqrt.(d)
+  s = size(A[jp2])
+  Ajp2 = reshape(A[jp2],s[1].s[2]*s[3])
+  Ajp2 = diagm(inv.(dSqrt))*U'*Ajp2
+  A[jp2] = reshape(Ajp2,length(d),s[2],s[3])
+  s = size(A[jp1])
+  Ajp1 = reshape(A[jp1],s[1]*s[2],s[3])
+  Ajp1 = Ajp1*U*diagm(dSqrt)
+  A[jp1] = reshape(Ajp1,s[1],s[2],length(d))
+
 end
 
 function calcEnv(l,r,toRight)
