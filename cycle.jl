@@ -50,6 +50,7 @@ sm = sp'
 Htwosite = reshape(JK(sz,sz) + 0.5 * JK(sp,sm) + 0.5 * JK(sm,sp),2,2,2,2)
 # order for Htwosite is s1, s2, s1p, s2p
 
+D = 10
 n = 28		# exact n=28 energy is -12.2254405486
 #  Make initial product state in up down up down up down pattern (Neel state)
 # Make first tensor a 1 x 2 x m tensor; and last is m x 2 x 1  (rather than vectors)
@@ -59,8 +60,8 @@ for i=1:n
 end
 
 function mainLoop()
-  numIters = [1000,2000,8000]
-  #numIters = [100,200,1000]
+  #numIters = [1000,2000,8000]
+  numIters = [100,200,1000]
   taus = [.1,.01,.001]
   for stage = 1:3
     tau = taus[stage]
@@ -68,7 +69,7 @@ function mainLoop()
     for iter = 1:numIter
       taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
       #println("\n iteration = $iter")
-      for j = 1:N
+      for j = 1:n
         normEnv(j)
         jp1 = mod(j,n)+1
         (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
@@ -94,9 +95,11 @@ function normEnv(j)
   F = eigfact(Eleft)
   d = F[:values]
   U = F[:vectors]
+  (d,U) = cleanEigs(d,U)
   dSqrt = sqrt.(d)
   s = size(A[jm1])
   Ajm1 = reshape(A[jm1],s[1]*s[2],s[3])
+  #@show(size(A[jm1]),size(U),size(dSqrt))
   Ajm1 = Ajm1*U*diagm(inv.(dSqrt))
   A[jm1] = reshape(Ajm1,s[1],s[2],length(d))
   s = size(A[j])
@@ -107,9 +110,10 @@ function normEnv(j)
   F = eigfact(Eright)
   d = F[:values]
   U = F[:vectors]
+  (d,U) = cleanEigs(d,U)
   dSqrt = sqrt.(d)
   s = size(A[jp2])
-  Ajp2 = reshape(A[jp2],s[1].s[2]*s[3])
+  Ajp2 = reshape(A[jp2],s[1],s[2]*s[3])
   Ajp2 = diagm(inv.(dSqrt))*U'*Ajp2
   A[jp2] = reshape(Ajp2,length(d),s[2],s[3])
   s = size(A[jp1])
@@ -120,21 +124,21 @@ function normEnv(j)
 end
 
 function calcEnv(l,r,toRight)
-  ld = size(A[l],1)
+  ld = toRight? size(A[l],1): size(A[r],3)
   E = eye(ld)
-  num = r >= l? l-r+1: n-l+r+1
-  curr = l
+  num = r >= l? r-l+1: n-l+r+1
+  curr = toRight? l: r
   for k = 1:num
-    Nc = N[curr]
-    Ncp = Nc'
+    Ac = A[curr]
+    Acp = conj.(Ac)
     if (toRight)
       @tensor begin
-        Enew[c,d] := E[a,b]*Ncp[a,p,c]*Nc[b,p,d]
+        Enew[c,d] := E[a,b]*Acp[a,p,c]*Ac[b,p,d]
       end
       curr = mod(curr,n)+1
     else
       @tensor begin
-        Enew[a,b] := E[c,d]*Ncp[a,p,c]*Nc[b,p,d]
+        Enew[a,b] := E[c,d]*Acp[a,p,c]*Ac[b,p,d]
       end
       curr = mod(curr-2,n)+1
     end
@@ -155,10 +159,10 @@ function applyGateAndTrim(Aleft,Aright,g)
         newDim = min(D,length(d))
         U = U[:,1:newDim]
         V = V[:,1:newDim]
-        D = diagm(d[1:newDim])
+        diagD = diagm(d[1:newDim])
         A2p = reshape(U,a[1],a[2],newDim)
-        B2p = reshape(D*V',newDim,a[3],a[4])
-        return(A2p, B2p, newSH)
+        B2p = reshape(diagD*V',newDim,a[3],a[4])
+        return(A2p, B2p)
 end
 
 function renormL2(T)
@@ -167,4 +171,14 @@ function renormL2(T)
   norm = abs(Tvec'*Tvec)
   T = T/sqrt(norm)
   return(T)
+end
+
+function cleanEigs(d,U)
+    count = 1
+    while (d[count] <= 0)
+        count += 1
+    end
+    newD = d[count:length(d)]
+    newU = U[:,count:length(d)]
+    return(newD,newU)
 end
