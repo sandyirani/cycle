@@ -164,23 +164,23 @@ function calcEnv(l,r,toRight)
 end
 
 function applyGateAndTrim(Aleft,Aright,g)
-        @tensor begin
-          ABg[a,s1p,s2p,c] := Aleft[a,s1,b]*Aright[b,s2,c]*g[s1,s2,s1p,s2p]
-        end
-        ABg = renormL2(ABg)
-        a = size(ABg)
-        ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
-        (U,d,V) = svd(ABg)
-        newDim = min(D,length(d))
-        @show(length(d),newDim)
-        U = U[:,1:newDim]
-        V = V[:,1:newDim]
-        diagD = diagm(d[1:newDim])
-        @show(trace(ABg'*U*diagD*V'))
-        @show(d[1:newDim])
-        A2p = reshape(U,a[1],a[2],newDim)
-        B2p = reshape(diagD*V',newDim,a[3],a[4])
-        return(A2p, B2p)
+    @tensor begin
+        ABg[a,s1p,s2p,c] := Aleft[a,s1,b]*Aright[b,s2,c]*g[s1,s2,s1p,s2p]
+    end
+    ABg = renormL2(ABg)
+    a = size(ABg)
+    ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
+    (U,d,V) = svd(ABg)
+    newDim = min(D,length(d))
+    @show(length(d),newDim)
+    U = U[:,1:newDim]
+    V = V[:,1:newDim]
+    diagD = diagm(d[1:newDim])
+    @show(trace(ABg'*U*diagD*V'))
+    @show(d[1:newDim])
+    A2p = reshape(U,a[1],a[2],newDim)
+    B2p = reshape(diagD*V',newDim,a[3],a[4])
+    return(A2p, B2p)
 end
 
 function renormL2(T)
