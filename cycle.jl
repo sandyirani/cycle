@@ -59,10 +59,25 @@ for i=1:n
   A[i][1,iseven(i) ? 2 : 1,1] = 1.0
 end
 
+function test()
+    tau = .1
+    taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
+    for j = 1:n
+        normEnv(j)
+        @show(j)
+        @show(calcOverlapCycle(A,A))
+        jp1 = mod(j,n)+1
+        (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
+        @show(calcOverlapCycle(A,A))
+        println(" ")
+    end
+end
+
 function mainLoop()
   #numIters = [1000,2000,8000]
   numIters = [100,200,1000]
   taus = [.1,.01,.001]
+  @show(calcOverlapCycle(A,A))
   for stage = 1:3
     tau = taus[stage]
     numIter = numIters[stage]
@@ -76,6 +91,7 @@ function mainLoop()
       end
     end
     println("\n End of stage $stage")
+    @show(calcOverlapCycle(A,A))
   end
 end
 
@@ -148,7 +164,6 @@ function calcEnv(l,r,toRight)
 end
 
 function applyGateAndTrim(Aleft,Aright,g)
-
         @tensor begin
           ABg[a,s1p,s2p,c] := Aleft[a,s1,b]*Aright[b,s2,c]*g[s1,s2,s1p,s2p]
         end
@@ -157,9 +172,12 @@ function applyGateAndTrim(Aleft,Aright,g)
         ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
         (U,d,V) = svd(ABg)
         newDim = min(D,length(d))
+        @show(length(d),newDim)
         U = U[:,1:newDim]
         V = V[:,1:newDim]
         diagD = diagm(d[1:newDim])
+        @show(trace(ABg'*U*diagD*V'))
+        @show(d[1:newDim])
         A2p = reshape(U,a[1],a[2],newDim)
         B2p = reshape(diagD*V',newDim,a[3],a[4])
         return(A2p, B2p)
@@ -168,7 +186,8 @@ end
 function renormL2(T)
   t = size(T)
   Tvec = reshape(T,prod(t))
-  norm = abs(Tvec'*Tvec)
+  norm = abs(
+  Tvec'*Tvec)
   T = T/sqrt(norm)
   return(T)
 end
@@ -181,4 +200,21 @@ function cleanEigs(d,U)
     newD = d[count:length(d)]
     newU = U[:,count:length(d)]
     return(newD,newU)
+end
+
+function calcOverlapCycle(T,S)
+
+  left = eye(size(T[1])[1]*size(S[1])[1])
+  for i = 1:n
+    Siconj = conj.(S[i])
+    Ti = T[i]
+    @tensor begin
+      NewM[u,w,x,y] := Siconj[u,s,x]*Ti[w,s,y]
+    end
+    nm = size(NewM)
+    left = left*reshape(NewM,nm[1]*nm[2],nm[3]*nm[4])
+  end
+  norm = trace(left)
+  return(norm)
+
 end
