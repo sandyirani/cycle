@@ -70,7 +70,8 @@ function mainLoop()
       #println("\n iteration = $iter")
       for j = 1:N
         normEnv(j)
-        applyGateAndTrim(j,taugate)
+        jp1 = mod(j,n)+1
+        (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
       end
     end
     println("\n End of stage $stage")
@@ -140,4 +141,30 @@ function calcEnv(l,r,toRight)
     E = Enew
   end
   return(E)
+end
+
+function applyGateAndTrim(Aleft,Aright,g)
+
+        @tensor begin
+          ABg[a,s1p,s2p,c] := Aleft[a,s1,b]*Aright[b,s2,c]*g[s1,s2,s1p,s2p]
+        end
+        ABg = renormL2(ABg)
+        a = size(ABg)
+        ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
+        (U,d,V) = svd(ABg)
+        newDim = min(D,length(d))
+        U = U[:,1:newDim]
+        V = V[:,1:newDim]
+        D = diagm(d[1:newDim])
+        A2p = reshape(U,a[1],a[2],newDim)
+        B2p = reshape(D*V',newDim,a[3],a[4])
+        return(A2p, B2p, newSH)
+end
+
+function renormL2(T)
+  t = size(T)
+  Tvec = reshape(T,prod(t))
+  norm = abs(Tvec'*Tvec)
+  T = T/sqrt(norm)
+  return(T)
 end
