@@ -63,19 +63,31 @@ function test()
     tau = .1
     taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
     for j = 1:n
+        if (j == 14)
+            T = calcEnvFull(16,13)
+            @show(T)
+        end
         normEnv(j)
         @show(j)
         @show(calcOverlapCycle(A,A))
         jp1 = mod(j,n)+1
+        if (j == 14)
+            T = calcEnvFull(16,13)
+            @show(T)
+        end
         (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
         @show(calcOverlapCycle(A,A))
         println(" ")
+        if (j==1 || j==2)
+            @show(size(A[1]))
+            @show(A[1])
+        end
     end
 end
 
 function mainLoop()
-  #numIters = [1000,2000,8000]
-  numIters = [100,200,1000]
+  numIters = [1000,2000,8000]
+  #numIters = [100,200,1000]
   taus = [.1,.01,.001]
   @show(calcOverlapCycle(A,A))
   for stage = 1:3
@@ -93,6 +105,7 @@ function mainLoop()
     println("\n End of stage $stage")
     @show(calcOverlapCycle(A,A))
   end
+  @show(calcEnergy())
 end
 
 function normEnv(j)
@@ -141,7 +154,7 @@ end
 
 function calcEnv(l,r,toRight)
   ld = toRight? size(A[l],1): size(A[r],3)
-  E = eye(ld)
+  E = eye(ld)/sqrt(ld)
   num = r >= l? r-l+1: n-l+r+1
   curr = toRight? l: r
   for k = 1:num
@@ -172,14 +185,27 @@ function applyGateAndTrim(Aleft,Aright,g)
     ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
     (U,d,V) = svd(ABg)
     newDim = min(D,length(d))
-    @show(length(d),newDim)
     U = U[:,1:newDim]
     V = V[:,1:newDim]
     diagD = diagm(d[1:newDim])
-    @show(trace(ABg'*U*diagD*V'))
-    @show(d[1:newDim])
     A2p = reshape(U,a[1],a[2],newDim)
     B2p = reshape(diagD*V',newDim,a[3],a[4])
+    return(A2p, B2p)
+end
+
+function applyGate(Aleft,Aright,g)
+    @tensor begin
+        ABg[a,s1p,s2p,c] := Aleft[a,s1,b]*Aright[b,s2,c]*g[s1,s2,s1p,s2p]
+    end
+    ABg = renormL2(ABg)
+    a = size(ABg)
+    ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
+    (U,d,V) = svd(ABg)
+    U = U[:,1:length(d)]
+    V = V[:,1:length(d)]
+    diagD = diagm(d[1:length(d)])
+    A2p = reshape(U,a[1],a[2],length(d))
+    B2p = reshape(diagD*V',length(d),a[3],a[4])
     return(A2p, B2p)
 end
 
@@ -217,4 +243,36 @@ function calcOverlapCycle(T,S)
   norm = trace(left)
   return(norm)
 
+end
+
+function calcEnvFull(l,r)
+    ld = size(A[l],1)
+    E = eye(ld*ld)
+    num = r >= l? r-l+1: n-l+r+1
+    curr = l
+    for k = 1:num
+        Ac = A[curr]
+        Acp = conj.(Ac)
+        @tensor begin
+            Enew[a,b,c,d] := Acp[a,p,c]*Ac[b,p,d]
+        end
+        curr = mod(curr,n)+1
+        s = size(Enew)
+        E = E * reshape(Enew,s[1]*s[2],s[3]*s[4])
+    end
+    return(E)
+end
+
+function calcEnergy()
+    norm = calcOverlapCycle(A,A)
+    AE = [copy(A[j]) for j = 1:n]
+    energy = 0
+    for j = 1:n
+        jp1 = mod(j,n)+1
+        (AE[j],AE[jp1]) = applyGate(AE[j],AE[jp1],Htwosite)
+        energy += calcOverlapCycle(AE,A)
+        AE[j] = copy(A[j])
+        AE[jp1] = copy(AE[j])
+    end
+    return(energy/(n*norm))
 end
