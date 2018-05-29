@@ -59,31 +59,7 @@ for i=1:n
   A[i][1,iseven(i) ? 2 : 1,1] = 1.0
 end
 
-function test()
-    tau = .1
-    taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
-    for j = 1:n
-        if (j == 14)
-            T = calcEnvFull(16,13)
-            @show(T)
-        end
-        normEnv(j)
-        @show(j)
-        @show(calcOverlapCycle(A,A))
-        jp1 = mod(j,n)+1
-        if (j == 14)
-            T = calcEnvFull(16,13)
-            @show(T)
-        end
-        (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
-        @show(calcOverlapCycle(A,A))
-        println(" ")
-        if (j==1 || j==2)
-            @show(size(A[1]))
-            @show(A[1])
-        end
-    end
-end
+
 
 function mainLoop()
   numIters = [1000,2000,8000]
@@ -97,7 +73,7 @@ function mainLoop()
       taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
       #println("\n iteration = $iter")
       for j = 1:n
-        normEnv(j)
+        #normEnv(j)
         jp1 = mod(j,n)+1
         (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
       end
