@@ -104,8 +104,8 @@ function mainLoopLine()
     end
     println("\n End of stage $stage")
     @show(calcOverlapCycle(A,A))
+    @show(calcEnergyLine())
   end
-  @show(calcEnergy())
 end
 
 function normEnv(j)
@@ -180,7 +180,7 @@ function normEnvLine(j)
     U = F[:vectors]
     (d,U) = cleanEigs(d,U)
     dSqrt = sqrt.(d)
-    s = size(A[jp2])
+    s = size(A[j+2])
     Ajp2 = reshape(A[j+2],s[1],s[2]*s[3])
     Ajp2 = diagm(inv.(dSqrt))*U'*Ajp2
     A[j+2] = reshape(Ajp2,length(d),s[2],s[3])
@@ -312,7 +312,20 @@ function calcEnergy()
         (AE[j],AE[jp1]) = applyGate(AE[j],AE[jp1],Htwosite)
         energy += calcOverlapCycle(AE,A)
         AE[j] = copy(A[j])
-        AE[jp1] = copy(AE[j])
+        AE[jp1] = copy(A[jp1])
+    end
+    return(energy/(n*norm))
+end
+
+function calcEnergyLine()
+    norm = calcOverlapCycle(A,A)
+    AE = [copy(A[j]) for j = 1:n]
+    energy = 0
+    for j = 1:n-1
+        (AE[j],AE[j+1]) = applyGate(AE[j],AE[j+1],Htwosite)
+        energy += calcOverlapCycle(AE,A)
+        AE[j] = copy(A[j])
+        AE[j+1] = copy(A[j+1])
     end
     return(energy/(n*norm))
 end
