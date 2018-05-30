@@ -1,4 +1,5 @@
-
+include("utilities.jl")
+include("header.jl")
 
 function mainLoopLine()
   numIters = [1000,2000,8000]

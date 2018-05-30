@@ -110,3 +110,27 @@ function calcOverlapCycle(T,S)
   return(norm)
 
 end
+
+function calcEnv(l,r,toRight)
+  ld = toRight? size(A[l],1): size(A[r],3)
+  E = eye(ld)/sqrt(ld)
+  num = r >= l? r-l+1: n-l+r+1
+  curr = toRight? l: r
+  for k = 1:num
+    Ac = A[curr]
+    Acp = conj.(Ac)
+    if (toRight)
+      @tensor begin
+        Enew[c,d] := E[a,b]*Acp[a,p,c]*Ac[b,p,d]
+      end
+      curr = mod(curr,n)+1
+    else
+      @tensor begin
+        Enew[a,b] := E[c,d]*Acp[a,p,c]*Ac[b,p,d]
+      end
+      curr = mod(curr-2,n)+1
+    end
+    E = Enew
+  end
+  return(E)
+end
