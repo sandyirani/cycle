@@ -12,8 +12,7 @@ function mainLoopLine()
     taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
     for iter = 1:numIter
       #println("\n iteration = $iter")
-      for k = 1:n-1
-        j = Int64(ceil(rand()*(n-1)))
+      for j = 1:n-1
         normEnvLine(j)
         (A[j],A[j+1]) = applyGateAndTrim(A[j],A[j+1],taugate)
       end
@@ -70,9 +69,19 @@ function calcEnergyLine()
     energy = 0
     for j = 1:n-1
         (AE[j],AE[j+1]) = applyGate(AE[j],AE[j+1],Htwosite)
-        energy += calcOverlapCycle(AE,A)
+        twoSiteE = calcOverlapCycle(AE,A)
+        @show(twoSiteE)
+        energy += twoSiteE
         AE[j] = copy(A[j])
         AE[j+1] = copy(A[j+1])
     end
     return(energy/(n*norm))
+end
+
+
+function test(k)
+  Eleft = calcEnv(1,k-1,true)
+  Eright = calcEnv(k+2,n,false)
+  @show(Eleft)
+  @show(Eright)
 end
