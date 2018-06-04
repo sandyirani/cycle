@@ -1,23 +1,17 @@
-include("utilities.jl")
 include("header.jl")
+include("utilities.jl")
 
-function mainLoopLine()
-  numIters = [1000,2000,8000]
-  #numIters = [100,200,1000]
-  taus = [.1,.01,.001]
+function mainLoopLine2()
   @show(calcOverlapCycle(A,A))
-  for stage = 1:3
-    tau = taus[stage]
-    numIter = numIters[stage]
+  tau = 0.2
+  for swp = 1:10000
+    swp%100 == 0 && (tau = 0.2*100/swp)
     taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
-    for iter = 1:numIter
-      #println("\n iteration = $iter")
-      for j = 1:n-1
-        normEnvLine(j)
-        (A[j],A[j+1]) = applyGateAndTrim(A[j],A[j+1],taugate)
-      end
+    #println("\n iteration = $iter")
+    for j = 1:n-1
+      normEnvLine(j)
+      (A[j],A[j+1]) = applyGateAndTrim(A[j],A[j+1],taugate)
     end
-    println("\n End of stage $stage")
     @show(calcOverlapCycle(A,A))
     @show(calcEnergyLine())
   end
@@ -70,7 +64,6 @@ function calcEnergyLine()
     for j = 1:n-1
         (AE[j],AE[j+1]) = applyGate(AE[j],AE[j+1],Htwosite)
         twoSiteE = calcOverlapCycle(AE,A)
-        @show(twoSiteE)
         energy += twoSiteE
         AE[j] = copy(A[j])
         AE[j+1] = copy(A[j+1])

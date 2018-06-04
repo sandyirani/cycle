@@ -1,3 +1,6 @@
+include("header.jl")
+include("utilities.jl")
+
 function dosvdtrunc(AA,m)		# AA a matrix;  keep at most m states
     (u,d,v) = svd(AA)
     prob = dot(d,d)		# total probability
@@ -75,6 +78,7 @@ function mainLoopLine()
             AA *= 1.0 / sqrt(nor)
             (A[i],A[i+1],trunc) = dosvd4(AA,m,toright)
         end
+        totE = totE/n
         swp%10 == 0 && println("$swp $tau $totE")
     end
 end
