@@ -63,7 +63,7 @@ function applyGate(Aleft,Aright,g)
     @tensor begin
         ABg[a,s1p,s2p,c] := Aleft[a,s1,b]*Aright[b,s2,c]*g[s1,s2,s1p,s2p]
     end
-    ABg = renormL2(ABg)
+    #ABg = renormL2(ABg)
     a = size(ABg)
     ABg = reshape(ABg,a[1]*a[2],a[3]*a[4])
     (U,d,V) = svd(ABg)

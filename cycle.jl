@@ -1,30 +1,29 @@
+using TensorOperations
 include("utilities.jl")
 include("header.jl")
 
 
 function mainLoop()
-  numIters = [1000,2000,8000]
-  #numIters = [100,200,1000]
-  taus = [.1,.01,.001]
   @show(calcOverlapCycle(A,A))
-  for stage = 1:3
-    tau = taus[stage]
-    numIter = numIters[stage]
-    for iter = 1:numIter
+  tau = 0.2
+  taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
+  for swp = 1:10000
+    if (swp%100 == 0)
+      tau = 0.2*100/swp
       taugate = reshape(expm(-tau * reshape(Htwosite,4,4)),2,2,2,2)
-      #println("\n iteration = $iter")
-      for j = 1:n
-        #normEnv(j)
-        jp1 = mod(j,n)+1
-        (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
-      end
+      @show(calcEnergy())
     end
-    println("\n End of stage $stage")
-    @show(calcOverlapCycle(A,A))
+    for j = 1:n
+      normEnv(j)
+      jp1 = mod(j,n)+1
+      (A[j],A[jp1]) = applyGateAndTrim(A[j],A[jp1],taugate)
+    end
   end
   @show(calcEnergy())
 end
 
+function updatePair(left,right)
+end
 
 
 function normEnv(j)
@@ -105,5 +104,5 @@ function calcEnergy()
         AE[j] = copy(A[j])
         AE[jp1] = copy(A[jp1])
     end
-    return(energy/(n*norm))
+    return(energy/norm)
 end
